@@ -13,13 +13,12 @@ class AuthenticationError(Exception):
 
 def _get_api_keys():
     '''Get the configured API keys from the octoDNS config'''
-    from .config import get_config
-
-    config = get_config(current_app.config['OCTODNS_CONFIG_FILE'])
+    # Get config from the manager instance (already has env vars resolved)
+    config = current_app.manager.manager.config
     api_config = config.get('api', {})
     keys_config = api_config.get('keys', [])
 
-    # Extract the actual key values, resolving env vars if needed
+    # Extract the actual key values
     keys = []
     for key_config in keys_config:
         key_value = key_config.get('key')

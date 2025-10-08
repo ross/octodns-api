@@ -5,7 +5,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from ..auth import require_api_key
-from ..manager import ApiManager, ApiManagerException
+from ..manager import ApiManagerException
 
 records_bp = Blueprint('records', __name__, url_prefix='/zones')
 
@@ -15,8 +15,7 @@ records_bp = Blueprint('records', __name__, url_prefix='/zones')
 def list_records(zone_name):
     '''List all records in a zone'''
     try:
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        zone = manager.get_zone(zone_name)
+        zone = current_app.manager.get_zone(zone_name)
 
         records = [record.data for record in zone.records]
 
@@ -34,8 +33,9 @@ def list_records(zone_name):
 def get_record(zone_name, record_name, record_type):
     '''Get a specific record'''
     try:
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        record = manager.get_record(zone_name, record_name, record_type)
+        record = current_app.manager.get_record(
+            zone_name, record_name, record_type
+        )
 
         if not record:
             return (
@@ -69,8 +69,7 @@ def create_or_update_record(zone_name):
         if not record_data:
             return jsonify({'error': 'No record data provided'}), 400
 
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        record, changed = manager.create_or_update_record(
+        record, changed = current_app.manager.create_or_update_record(
             zone_name, record_data
         )
 
@@ -96,8 +95,9 @@ def create_or_update_record(zone_name):
 def delete_record(zone_name, record_name, record_type):
     '''Delete a record'''
     try:
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        deleted = manager.delete_record(zone_name, record_name, record_type)
+        deleted = current_app.manager.delete_record(
+            zone_name, record_name, record_type
+        )
 
         if not deleted:
             return (

@@ -5,7 +5,7 @@
 
 from argparse import ArgumentParser
 
-from .app import create_app
+from octodns_api.app import create_app
 
 
 def main():

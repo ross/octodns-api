@@ -5,6 +5,10 @@
 from flask import Flask
 from flask_cors import CORS
 
+from .api.records import records_bp
+from .api.zones import zones_bp
+from .manager import ApiManager
+
 
 def create_app(config_file):
     '''
@@ -17,13 +21,10 @@ def create_app(config_file):
     app = Flask(__name__)
     CORS(app)
 
-    # Store config file path in app config
-    app.config['OCTODNS_CONFIG_FILE'] = config_file
+    # Create and store ApiManager instance for reuse across requests
+    app.manager = ApiManager(config_file)
 
     # Register blueprints
-    from .api.records import records_bp
-    from .api.zones import zones_bp
-
     app.register_blueprint(zones_bp)
     app.register_blueprint(records_bp)
 

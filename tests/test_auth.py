@@ -68,7 +68,7 @@ class TestAuth(TestCase):
 
     def test_get_api_keys_with_missing_key_value(self):
         # Test coverage for when a key config has no 'key' field
-        from octodns_api.config import clear_config_cache
+        from octodns_api.app import create_app
 
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             f.write(
@@ -84,14 +84,17 @@ providers:
   config:
     class: octodns.provider.yaml.YamlProvider
     directory: /tmp
+
+zones:
+  example.com.:
+    sources:
+      - config
 '''
             )
             config_file = f.name
 
-        with self.app.app_context():
-            self.app.config['OCTODNS_CONFIG_FILE'] = config_file
+        test_app = create_app(config_file)
+        with test_app.app_context():
             keys = _get_api_keys()
             # Should only include the valid key, skip the one without 'key' field
             self.assertEqual(keys, ['valid-key'])
-
-        clear_config_cache()

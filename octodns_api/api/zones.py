@@ -5,7 +5,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from ..auth import require_api_key
-from ..manager import ApiManager, ApiManagerException
+from ..manager import ApiManagerException
 
 zones_bp = Blueprint('zones', __name__, url_prefix='/zones')
 
@@ -15,8 +15,7 @@ zones_bp = Blueprint('zones', __name__, url_prefix='/zones')
 def list_zones():
     '''List all configured zones'''
     try:
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        zones = manager.list_zones()
+        zones = current_app.manager.list_zones()
         return jsonify({'zones': zones})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -27,8 +26,7 @@ def list_zones():
 def get_zone(zone_name):
     '''Get a zone with all its records'''
     try:
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        zone = manager.get_zone(zone_name)
+        zone = current_app.manager.get_zone(zone_name)
 
         # Convert zone records to data dictionaries
         records = [record.data for record in zone.records]
@@ -54,8 +52,7 @@ def sync_zone(zone_name):
         data = request.get_json() or {}
         dry_run = data.get('dry_run', True)
 
-        manager = ApiManager(current_app.config['OCTODNS_CONFIG_FILE'])
-        result = manager.sync_zone(zone_name, dry_run=dry_run)
+        result = current_app.manager.sync_zone(zone_name, dry_run=dry_run)
 
         return jsonify(result)
     except ApiManagerException as e:

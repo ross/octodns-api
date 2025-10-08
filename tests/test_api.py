@@ -181,14 +181,18 @@ zones:
 
     def test_create_record_error(self):
         # Test API manager exception
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.create_or_update_record.side_effect = (
-                ApiManagerException('Target not found')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.create_or_update_record.side_effect = ApiManagerException(
+            'Target not found'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
                 '/zones/example.com./records',
                 json={'name': 'test', 'ttl': 300, 'type': 'A'},
@@ -198,12 +202,16 @@ zones:
 
     def test_create_record_unexpected_error(self):
         # Test generic exception
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.create_or_update_record.side_effect = (
-                Exception('Unexpected error')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.create_or_update_record.side_effect = Exception(
+            'Unexpected error'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
                 '/zones/example.com./records',
                 json={'name': 'test', 'ttl': 300, 'type': 'A'},
@@ -212,102 +220,126 @@ zones:
             self.assertEqual(response.status_code, 400)
 
     def test_get_record_api_manager_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.get_record.side_effect = (
-                ApiManagerException('Zone not configured')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_record.side_effect = ApiManagerException(
+            'Zone not configured'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com./records/www/A', headers=self.headers
             )
             self.assertEqual(response.status_code, 404)
 
     def test_get_record_unexpected_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.get_record.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_record.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com./records/www/A', headers=self.headers
             )
             self.assertEqual(response.status_code, 500)
 
     def test_delete_record_api_manager_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.delete_record.side_effect = (
-                ApiManagerException('Zone not configured')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.delete_record.side_effect = ApiManagerException(
+            'Zone not configured'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.delete(
                 '/zones/example.com./records/www/A', headers=self.headers
             )
             self.assertEqual(response.status_code, 404)
 
     def test_delete_record_unexpected_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.delete_record.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.delete_record.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.delete(
                 '/zones/example.com./records/www/A', headers=self.headers
             )
             self.assertEqual(response.status_code, 500)
 
     def test_list_zones_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.zones.ApiManager') as mock_manager:
-            mock_manager.return_value.list_zones.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.list_zones.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get('/zones', headers=self.headers)
             self.assertEqual(response.status_code, 500)
 
     def test_get_zone_api_manager_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.zones.ApiManager') as mock_manager:
-            mock_manager.return_value.get_zone.side_effect = (
-                ApiManagerException('Zone not configured')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_zone.side_effect = ApiManagerException(
+            'Zone not configured'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com.', headers=self.headers
             )
             self.assertEqual(response.status_code, 404)
 
     def test_get_zone_unexpected_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.zones.ApiManager') as mock_manager:
-            mock_manager.return_value.get_zone.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_zone.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com.', headers=self.headers
             )
             self.assertEqual(response.status_code, 500)
 
     def test_sync_zone_api_manager_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.zones.ApiManager') as mock_manager:
-            mock_manager.return_value.sync_zone.side_effect = (
-                ApiManagerException('Zone not configured')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.sync_zone.side_effect = ApiManagerException(
+            'Zone not configured'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
                 '/zones/example.com./sync',
                 json={'dry_run': True},
@@ -316,12 +348,14 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_sync_zone_unexpected_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.zones.ApiManager') as mock_manager:
-            mock_manager.return_value.sync_zone.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.sync_zone.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
                 '/zones/example.com./sync',
                 json={'dry_run': True},
@@ -330,26 +364,32 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_list_records_api_manager_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
         from octodns_api.manager import ApiManagerException
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.get_zone.side_effect = (
-                ApiManagerException('Zone not configured')
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_zone.side_effect = ApiManagerException(
+            'Zone not configured'
+        )
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com./records', headers=self.headers
             )
             self.assertEqual(response.status_code, 404)
 
     def test_list_records_unexpected_error(self):
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch('octodns_api.api.records.ApiManager') as mock_manager:
-            mock_manager.return_value.get_zone.side_effect = Exception(
-                'Unexpected'
-            )
+        mock_manager = MagicMock()
+        mock_manager.manager.config = {
+            'api': {'keys': [{'key': 'test-key-123'}]}
+        }
+        mock_manager.get_zone.side_effect = Exception('Unexpected')
+        with patch.object(self.app, 'manager', mock_manager):
             response = self.client.get(
                 '/zones/example.com./records', headers=self.headers
             )
