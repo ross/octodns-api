@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from flask import Flask
 
+from octodns_api.app import create_app
 from octodns_api.auth import _get_api_keys, require_api_key
 
 
@@ -68,8 +69,6 @@ class TestAuth(TestCase):
 
     def test_get_api_keys_with_missing_key_value(self):
         # Test coverage for when a key config has no 'key' field
-        from octodns_api.app import create_app
-
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             f.write(
                 '''

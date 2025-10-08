@@ -7,8 +7,10 @@ from os.path import join
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+from unittest.mock import MagicMock, patch
 
 from octodns_api.app import create_app
+from octodns_api.manager import ApiManagerException
 
 
 class TestApi(TestCase):
@@ -181,10 +183,6 @@ zones:
 
     def test_create_record_error(self):
         # Test API manager exception
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -202,8 +200,6 @@ zones:
 
     def test_create_record_unexpected_error(self):
         # Test generic exception
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -220,10 +216,6 @@ zones:
             self.assertEqual(response.status_code, 400)
 
     def test_get_record_api_manager_error(self):
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -238,8 +230,6 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_get_record_unexpected_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -252,10 +242,6 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_delete_record_api_manager_error(self):
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -270,8 +256,6 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_delete_record_unexpected_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -284,8 +268,6 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_list_zones_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -296,10 +278,6 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_get_zone_api_manager_error(self):
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -314,8 +292,6 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_get_zone_unexpected_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -328,10 +304,6 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_sync_zone_api_manager_error(self):
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -348,8 +320,6 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_sync_zone_unexpected_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -364,10 +334,6 @@ zones:
             self.assertEqual(response.status_code, 500)
 
     def test_list_records_api_manager_error(self):
-        from unittest.mock import MagicMock, patch
-
-        from octodns_api.manager import ApiManagerException
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
@@ -382,8 +348,6 @@ zones:
             self.assertEqual(response.status_code, 404)
 
     def test_list_records_unexpected_error(self):
-        from unittest.mock import MagicMock, patch
-
         mock_manager = MagicMock()
         mock_manager.manager.config = {
             'api': {'keys': [{'key': 'test-key-123'}]}
