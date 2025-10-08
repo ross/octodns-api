@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/ross/octodns/octodns-template/**)",
+      "Read(//home/ross/octodns/octodns/**)",
+      "Bash(./script/test:*)",
+      "Bash(./script/format:*)",
+      "Bash(./script/coverage:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
