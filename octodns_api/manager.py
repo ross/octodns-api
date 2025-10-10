@@ -92,11 +92,15 @@ class ApiManager:
 
         return None
 
-    def create_or_update_record(self, zone_name, record_data):
+    def create_or_update_record(
+        self, zone_name, record_name, record_type, record_data
+    ):
         '''
         Create or update a record in a zone
 
         :param zone_name: Name of the zone
+        :param record_name: Name of the record
+        :param record_type: Type of the zone
         :param record_data: Record data dictionary
         :return: Tuple of (record, changes_applied)
         '''
@@ -119,15 +123,12 @@ class ApiManager:
         zone = self.get_zone(zone_name)
 
         # Create new record from data
-        record_name = record_data.get('name', '')
+        record_data['type'] = record_type
         new_record = Record.new(zone, record_name, record_data)
 
-        # Add or replace record in zone
-        zone.add_record(new_record, replace=True)
-
         # Create desired zone with the new/updated record
-        desired = Zone(zone_name, [])
-        desired.add_record(new_record)
+        desired = zone.copy()
+        desired.add_record(new_record, replace=True)
 
         # Sync to targets
         target_name = targets[0]
@@ -182,23 +183,24 @@ class ApiManager:
             return False
 
         # Create desired zone without the record (empty zone for this specific record)
-        desired = Zone(zone_name, [])
+        desired = zone.copy()
+        desired.remove_record(record_to_delete)
 
         # Sync to targets
-        target_name = targets[0]
-        target = self.manager.providers.get(target_name)
+        changes = False
+        for target_name in targets:
+            target = self.manager.providers.get(target_name)
+            if not target:
+                raise ApiManagerException(f'Target {target_name} not found')
 
-        if not target:
-            raise ApiManagerException(f'Target {target_name} not found')
+            # Plan with target record deleted
+            plan = target.plan(desired)
 
-        # Plan with empty desired zone will show deletion
-        plan = target.plan(desired)
+            if plan:
+                target.apply(plan)
+                changes = True
 
-        if plan:
-            target.apply(plan)
-            return True
-
-        return False
+        return changes
 
     def sync_zone(self, zone_name, dry_run=True):
         '''

@@ -130,7 +130,7 @@ zones:
         manager = ApiManager(config_file)
         with self.assertRaises(ApiManagerException) as cm:
             manager.create_or_update_record(
-                'example.com.', {'name': 'test', 'type': 'A', 'ttl': 300}
+                'example.com.', 'test', 'A', {'ttl': 300, 'values': ['1.2.3.4']}
             )
 
         self.assertIn('no targets', str(cm.exception))
@@ -165,12 +165,9 @@ zones:
             with self.assertRaises(ApiManagerException) as cm:
                 manager.create_or_update_record(
                     'example.com.',
-                    {
-                        'name': 'test',
-                        'type': 'A',
-                        'ttl': 300,
-                        'values': ['1.2.3.4'],
-                    },
+                    'test',
+                    'A',
+                    {'ttl': 300, 'values': ['1.2.3.4']},
                 )
 
             self.assertIn('not found', str(cm.exception))
@@ -236,12 +233,9 @@ zones:
         with self.assertRaises(ApiManagerException) as cm:
             manager.create_or_update_record(
                 'notfound.com.',
-                {
-                    'name': 'test',
-                    'type': 'A',
-                    'ttl': 300,
-                    'values': ['1.2.3.4'],
-                },
+                'test',
+                'A',
+                {'ttl': 300, 'values': ['1.2.3.4']},
             )
 
         self.assertIn('not configured', str(cm.exception))
@@ -272,12 +266,9 @@ zones:
 
                 record, changed = manager.create_or_update_record(
                     'example.com',
-                    {
-                        'name': 'test',
-                        'type': 'A',
-                        'ttl': 300,
-                        'values': ['1.2.3.4'],
-                    },
+                    'test',
+                    'A',
+                    {'ttl': 300, 'values': ['1.2.3.4']},
                 )
 
                 self.assertFalse(changed)
@@ -328,12 +319,9 @@ zones:
 
                     record, changed = manager.create_or_update_record(
                         'example.com.',
-                        {
-                            'name': 'test',
-                            'type': 'A',
-                            'ttl': 300,
-                            'values': ['1.2.3.4'],
-                        },
+                        'test',
+                        'A',
+                        {'ttl': 300, 'values': ['1.2.3.4']},
                     )
 
                     self.assertTrue(changed)

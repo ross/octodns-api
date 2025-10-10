@@ -19,6 +19,8 @@ def create_app(config_file):
     :return: Flask application instance
     '''
     app = Flask(__name__)
+    # Don't merge consecutive slashes - needed for apex records with empty names
+    app.url_map.merge_slashes = False
     CORS(app)
 
     # Create and store ApiManager instance for reuse across requests

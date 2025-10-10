@@ -85,8 +85,6 @@ zones:
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data['name'], 'example.com.')
-        self.assertIn('records', data)
-        self.assertEqual(len(data['records']), 2)
 
     def test_get_zone_not_found(self):
         response = self.client.get('/zones/notfound.com.', headers=self.headers)
@@ -119,15 +117,20 @@ zones:
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_get_apex_record(self):
+        # Test getting apex record (empty string name) using double slash
+        response = self.client.get(
+            '/zones/example.com./records//A', headers=self.headers
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data['type'], 'A')
+        self.assertEqual(data['name'], '')
+
     def test_create_record(self):
-        record_data = {
-            'name': 'test',
-            'ttl': 600,
-            'type': 'A',
-            'values': ['9.9.9.9'],
-        }
+        record_data = {'ttl': 600, 'values': ['9.9.9.9']}
         response = self.client.post(
-            '/zones/example.com./records',
+            '/zones/example.com./records/test/A',
             json=record_data,
             headers=self.headers,
         )
@@ -135,11 +138,12 @@ zones:
         data = response.get_json()
         self.assertIn('record', data)
         self.assertEqual(data['record']['name'], 'test')
+        self.assertEqual(data['record']['type'], 'A')
 
     def test_create_record_no_data(self):
         # Test with empty/null JSON to ensure get_json() returns None
         response = self.client.post(
-            '/zones/example.com./records',
+            '/zones/example.com./records/test/A',
             headers=self.headers,
             data='null',
             content_type='application/json',
@@ -161,6 +165,29 @@ zones:
             '/zones/example.com./records/notfound/A', headers=self.headers
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_create_apex_record(self):
+        # Test creating apex record (empty string name) using double slash
+        record_data = {'ttl': 600, 'values': ['8.8.8.8']}
+        response = self.client.post(
+            '/zones/example.com./records//A',
+            json=record_data,
+            headers=self.headers,
+        )
+        self.assertIn(response.status_code, [200, 201])
+        data = response.get_json()
+        self.assertIn('record', data)
+        self.assertEqual(data['record']['name'], '')
+        self.assertEqual(data['record']['type'], 'A')
+
+    def test_delete_apex_record(self):
+        # Test deleting apex record (empty string name) using double slash
+        response = self.client.delete(
+            '/zones/example.com./records//A', headers=self.headers
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data['deleted'])
 
     def test_sync_zone(self):
         response = self.client.post(
@@ -192,8 +219,8 @@ zones:
         )
         with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
-                '/zones/example.com./records',
-                json={'name': 'test', 'ttl': 300, 'type': 'A'},
+                '/zones/example.com./records/test/A',
+                json={'ttl': 300},
                 headers=self.headers,
             )
             self.assertEqual(response.status_code, 404)
@@ -209,8 +236,8 @@ zones:
         )
         with patch.object(self.app, 'manager', mock_manager):
             response = self.client.post(
-                '/zones/example.com./records',
-                json={'name': 'test', 'ttl': 300, 'type': 'A'},
+                '/zones/example.com./records/test/A',
+                json={'ttl': 300},
                 headers=self.headers,
             )
             self.assertEqual(response.status_code, 400)

@@ -2,6 +2,8 @@
 #
 #
 
+from collections import defaultdict
+
 from flask import Blueprint, current_app, jsonify, request
 
 from ..auth import require_api_key
@@ -17,7 +19,9 @@ def list_records(zone_name):
     try:
         zone = current_app.manager.get_zone(zone_name)
 
-        records = [record.data for record in zone.records]
+        records = defaultdict(dict)
+        for record in zone.records:
+            records[record.decoded_name][record._type] = record.data
 
         return jsonify({'zone': zone.name, 'records': records})
     except ApiManagerException as e:
@@ -29,8 +33,9 @@ def list_records(zone_name):
 @records_bp.route(
     '/<zone_name>/records/<record_name>/<record_type>', methods=['GET']
 )
+@records_bp.route('/<zone_name>/records//<record_type>', methods=['GET'])
 @require_api_key
-def get_record(zone_name, record_name, record_type):
+def get_record(zone_name, record_type, record_name=''):
     '''Get a specific record'''
     try:
         record = current_app.manager.get_record(
@@ -59,9 +64,12 @@ def get_record(zone_name, record_name, record_type):
         return jsonify({'error': str(e)}), 500
 
 
-@records_bp.route('/<zone_name>/records', methods=['POST'])
+@records_bp.route(
+    '/<zone_name>/records/<record_name>/<record_type>', methods=['POST']
+)
+@records_bp.route('/<zone_name>/records//<record_type>', methods=['POST'])
 @require_api_key
-def create_or_update_record(zone_name):
+def create_or_update_record(zone_name, record_type, record_name=''):
     '''Create or update a record'''
     try:
         record_data = request.get_json()
@@ -70,13 +78,13 @@ def create_or_update_record(zone_name):
             return jsonify({'error': 'No record data provided'}), 400
 
         record, changed = current_app.manager.create_or_update_record(
-            zone_name, record_data
+            zone_name, record_name, record_type, record_data
         )
 
         # Get full record data including name and type
         data = record.data
-        data['name'] = record.name
-        data['type'] = record._type
+        data['name'] = record_name
+        data['type'] = record_type
 
         return (
             jsonify({'record': data, 'changed': changed}),
@@ -91,8 +99,9 @@ def create_or_update_record(zone_name):
 @records_bp.route(
     '/<zone_name>/records/<record_name>/<record_type>', methods=['DELETE']
 )
+@records_bp.route('/<zone_name>/records//<record_type>', methods=['DELETE'])
 @require_api_key
-def delete_record(zone_name, record_name, record_type):
+def delete_record(zone_name, record_type, record_name=''):
     '''Delete a record'''
     try:
         deleted = current_app.manager.delete_record(
