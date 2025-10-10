@@ -31,14 +31,18 @@ class ApiManager:
         '''
         self.config_file = config_file
         self.manager = Manager(config_file)
+        # Preprocess zones to expand dynamic zone configurations
+        self.zones = self.manager._preprocess_zones(
+            dict(self.manager.config['zones'])
+        )
 
     def list_zones(self):
         '''
-        List all configured zones
+        List all configured zones (including expanded dynamic zones)
 
         :return: List of zone names
         '''
-        return list(self.manager.config['zones'].keys())
+        return list(self.zones.keys())
 
     def get_zone(self, zone_name):
         '''
@@ -51,11 +55,10 @@ class ApiManager:
         if not zone_name.endswith('.'):
             zone_name = f'{zone_name}.'
 
-        zones_config = self.manager.config['zones']
-        if zone_name not in zones_config:
+        if zone_name not in self.zones:
             raise ApiManagerException(f'Zone {zone_name} not configured')
 
-        zone_config = zones_config[zone_name]
+        zone_config = self.zones[zone_name]
         sources = zone_config.get('sources', [])
 
         if not sources:
@@ -107,11 +110,10 @@ class ApiManager:
         if not zone_name.endswith('.'):
             zone_name = f'{zone_name}.'
 
-        zones_config = self.manager.config['zones']
-        if zone_name not in zones_config:
+        if zone_name not in self.zones:
             raise ApiManagerException(f'Zone {zone_name} not configured')
 
-        zone_config = zones_config[zone_name]
+        zone_config = self.zones[zone_name]
         targets = zone_config.get('targets', [])
 
         if not targets:
@@ -157,11 +159,10 @@ class ApiManager:
         if not zone_name.endswith('.'):
             zone_name = f'{zone_name}.'
 
-        zones_config = self.manager.config['zones']
-        if zone_name not in zones_config:
+        if zone_name not in self.zones:
             raise ApiManagerException(f'Zone {zone_name} not configured')
 
-        zone_config = zones_config[zone_name]
+        zone_config = self.zones[zone_name]
         targets = zone_config.get('targets', [])
 
         if not targets:
@@ -213,8 +214,7 @@ class ApiManager:
         if not zone_name.endswith('.'):
             zone_name = f'{zone_name}.'
 
-        zones_config = self.manager.config['zones']
-        if zone_name not in zones_config:
+        if zone_name not in self.zones:
             raise ApiManagerException(f'Zone {zone_name} not configured')
 
         eligible_zones = [zone_name]

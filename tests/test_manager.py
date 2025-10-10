@@ -413,3 +413,71 @@ zones:
                 result = manager.delete_record('example.com.', 'test', 'A')
 
                 self.assertFalse(result)
+
+    def test_dynamic_zone_expansion(self):
+        # Test that dynamic zones (wildcards) are expanded during init
+        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(
+                '''
+providers:
+  yaml:
+    class: octodns.provider.yaml.YamlProvider
+    directory: /tmp
+
+zones:
+  '*':
+    sources:
+      - yaml
+    targets:
+      - yaml
+'''
+            )
+            config_file = f.name
+
+        # Mock list_zones at the class level before ApiManager is created
+        with patch(
+            'octodns.provider.yaml.YamlProvider.list_zones'
+        ) as mock_list_zones:
+            mock_list_zones.return_value = ['example.com.', 'test.com.']
+
+            manager = ApiManager(config_file)
+
+            zones = manager.list_zones()
+            self.assertIn('example.com.', zones)
+            self.assertIn('test.com.', zones)
+            self.assertNotIn('*', zones)
+
+    def test_dynamic_zone_get_zone(self):
+        # Test that zones expanded from wildcards can be accessed
+        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(
+                '''
+providers:
+  yaml:
+    class: octodns.provider.yaml.YamlProvider
+    directory: /tmp
+
+zones:
+  '*':
+    sources:
+      - yaml
+    targets:
+      - yaml
+'''
+            )
+            config_file = f.name
+
+        # Mock list_zones to return zones
+        with patch(
+            'octodns.provider.yaml.YamlProvider.list_zones'
+        ) as mock_list_zones:
+            mock_list_zones.return_value = ['dynamic.com.']
+            manager = ApiManager(config_file)
+
+            # Mock populate to avoid needing real zone data
+            with patch.object(
+                manager.manager.providers['yaml'], 'populate'
+            ) as mock_populate:
+                zone = manager.get_zone('dynamic.com.')
+                self.assertEqual(zone.name, 'dynamic.com.')
+                mock_populate.assert_called_once()
