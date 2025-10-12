@@ -13,6 +13,6 @@ fqdn==1.5.1
 idna==3.10
 itsdangerous==2.2.0
 natsort==8.4.0
-octodns==1.13.0
+octodns @ git+https://github.com/octodns/octodns.git@zone-config-cleanup
 python-dateutil==2.9.0.post0
 six==1.17.0
