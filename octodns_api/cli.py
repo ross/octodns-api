@@ -3,7 +3,7 @@
 #
 #
 
-from argparse import ArgumentParser
+from octodns.cmds.args import ArgumentParser
 
 from octodns_api.app import create_app
 
@@ -11,7 +11,9 @@ from octodns_api.app import create_app
 def main():
     parser = ArgumentParser(description='Run octoDNS API server')
     parser.add_argument(
-        '--config', required=True, help='Path to octoDNS configuration file'
+        '--config-file',
+        required=True,
+        help='Path to octoDNS configuration file',
     )
     parser.add_argument(
         '--host',
@@ -21,13 +23,10 @@ def main():
     parser.add_argument(
         '--port', type=int, default=5000, help='Port to bind to (default: 5000)'
     )
-    parser.add_argument(
-        '--debug', action='store_true', help='Enable debug mode'
-    )
 
     args = parser.parse_args()
 
-    app = create_app(args.config)
+    app = create_app(args.config_file)
     app.run(host=args.host, port=args.port, debug=args.debug)
 
 
