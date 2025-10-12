@@ -2,12 +2,18 @@
 #
 #
 
+from logging import getLogger
+
 from flask import Blueprint, current_app, jsonify, request
+
+from octodns.idna import idna_decode
 
 from ..auth import require_api_key
 from ..manager import ApiManagerException
 
 zones_bp = Blueprint('zones', __name__, url_prefix='/zones')
+
+log = getLogger('api.Zones')
 
 
 @zones_bp.route('', methods=['GET'])
@@ -16,6 +22,8 @@ def list_zones():
     '''List all configured zones'''
     try:
         zones = current_app.manager.list_zones()
+        zones = sorted(idna_decode(z) for z in zones)
+        log.debug('list_zones: zones=%s', zones)
         return jsonify({'zones': zones})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

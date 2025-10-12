@@ -2,6 +2,8 @@
 #
 #
 
+from logging import getLogger
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -22,6 +24,9 @@ def create_app(config_file):
     # Don't merge consecutive slashes - needed for apex records with empty names
     app.url_map.merge_slashes = False
     CORS(app)
+
+    # Configure Flask to use named logger so errors are logged
+    app.logger = getLogger('App')
 
     # Create and store ApiManager instance for reuse across requests
     app.manager = ApiManager(config_file)

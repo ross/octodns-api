@@ -86,7 +86,10 @@ class ApiManager:
         zone = self.get_zone(zone_name)
 
         for record in zone.records:
-            if record.name == record_name and record._type == record_type:
+            if (
+                record.decoded_name == record_name
+                and record._type == record_type
+            ):
                 return record
 
         return None
@@ -152,6 +155,12 @@ class ApiManager:
         :param record_type: Record type
         :return: True if deleted, False if not found
         '''
+        self.log.debug(
+            'delete_record: zone_name=%s, record_name=%s, type=%s',
+            zone_name,
+            record_name,
+            record_type,
+        )
         if not zone_name.endswith('.'):
             zone_name = f'{zone_name}.'
 
@@ -160,6 +169,7 @@ class ApiManager:
 
         zone_config = self.manager.zones[zone_name]
         targets = zone_config.get('targets', [])
+        self.log.debug('delete_record:   targets=%s', targets)
 
         if not targets:
             raise ApiManagerException(
@@ -168,13 +178,18 @@ class ApiManager:
 
         # Get current zone state
         zone = self.get_zone(zone_name)
+        self.log.debug('delete_record:   zone=%s', zone)
 
         # Find the record to delete
         record_to_delete = None
         for record in zone.records:
-            if record.name == record_name and record._type == record_type:
+            if (
+                record.decoded_name == record_name
+                and record._type == record_type
+            ):
                 record_to_delete = record
                 break
+        self.log.debug('delete_record:   record_to_delete=%s', record_to_delete)
 
         if not record_to_delete:
             return False

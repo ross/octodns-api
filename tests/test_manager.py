@@ -336,7 +336,7 @@ zones:
             mock_zone = MagicMock()
             mock_zone.name = 'example.com.'
             mock_record = MagicMock()
-            mock_record.name = 'test'
+            mock_record.decoded_name = 'test'
             mock_record._type = 'A'
             mock_zone.records = [mock_record]
             mock_get_zone.return_value = mock_zone
@@ -381,7 +381,7 @@ zones:
             mock_zone = MagicMock()
             mock_zone.name = 'example.com.'
             mock_record = MagicMock()
-            mock_record.name = 'test'
+            mock_record.decoded_name = 'test'
             mock_record._type = 'A'
             mock_zone.records = [mock_record]
             mock_get_zone.return_value = mock_zone
@@ -400,7 +400,7 @@ zones:
             mock_zone = MagicMock()
             mock_zone.name = 'example.com.'
             mock_record = MagicMock()
-            mock_record.name = 'test'
+            mock_record.decoded_name = 'test'
             mock_record._type = 'A'
             mock_zone.records = [mock_record]
             mock_get_zone.return_value = mock_zone
