@@ -6,6 +6,8 @@ from tempfile import NamedTemporaryFile
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
+from octodns.manager import ManagerException
+
 from octodns_api.manager import ApiManager, ApiManagerException
 
 
@@ -62,30 +64,7 @@ zones:
 
         self.assertIn('not configured', str(cm.exception))
 
-    def test_get_zone_no_sources(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
-providers:
-  yaml:
-    class: octodns.provider.yaml.YamlProvider
-    directory: /tmp
-
-zones:
-  example.com.:
-    targets:
-      - yaml
-'''
-            )
-            config_file = f.name
-
-        manager = ApiManager(config_file)
-        with self.assertRaises(ApiManagerException) as cm:
-            manager.get_zone('example.com.')
-
-        self.assertIn('no sources', str(cm.exception))
-
-    def test_get_zone_source_not_found(self):
+    def test_get_zone_no_targets(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             f.write(
                 '''
@@ -97,18 +76,41 @@ providers:
 zones:
   example.com.:
     sources:
-      - notfound
-    targets:
-      - yaml
+      - ignored
 '''
             )
             config_file = f.name
 
         manager = ApiManager(config_file)
-        with self.assertRaises(ApiManagerException) as cm:
+        with self.assertRaises(ManagerException) as cm:
             manager.get_zone('example.com.')
 
-        self.assertIn('not found', str(cm.exception))
+        self.assertIn('no targets', str(cm.exception))
+
+    def test_get_zone_target_not_found(self):
+        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(
+                '''
+providers:
+  yaml:
+    class: octodns.provider.yaml.YamlProvider
+    directory: /tmp
+
+zones:
+  example.com.:
+    sources:
+      - ignored
+    targets:
+      - notfound
+'''
+            )
+            config_file = f.name
+
+        manager = ApiManager(config_file)
+        with self.assertRaises(ManagerException) as cm:
+            manager.get_zone('example.com.')
+
+        self.assertIn('unknown target', str(cm.exception))
 
     def test_create_or_update_record_no_targets(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:

@@ -4,13 +4,35 @@
 
 from logging import getLogger
 
-from octodns.manager import Manager
+from octodns.manager import Manager, ManagerException
 from octodns.record import Record
 from octodns.zone import Zone
 
 
 class ApiManagerException(Exception):
     pass
+
+
+class _TargetOnlyManager(Manager):
+
+    # TODO: this is so hacky and ugly it can't be allowed to exist
+    def _get_sources(self, decoded_zone_name, config):
+        modified_config = dict(config)
+        self.log.info(
+            '_get_sources: api, copying targets to sources for zone=%s',
+            decoded_zone_name,
+        )
+        try:
+            modified_config['sources'] = modified_config['targets']
+        except KeyError:
+            raise ManagerException(
+                f'Zone {decoded_zone_name} has no targets configured'
+            )
+        try:
+            return super()._get_sources(decoded_zone_name, modified_config)
+        except ManagerException as e:
+            e.args = (e.args[0].replace('unknown source', 'unknown target'),)
+            raise
 
 
 class ApiManager:
@@ -30,7 +52,7 @@ class ApiManager:
         :type config_file: str
         '''
         self.config_file = config_file
-        self.manager = Manager(config_file)
+        self.manager = _TargetOnlyManager(config_file)
 
     def list_zones(self):
         '''
@@ -55,22 +77,12 @@ class ApiManager:
             raise ApiManagerException(f'Zone {zone_name} not configured')
 
         zone_config = self.manager.zones[zone_name]
-        sources = zone_config.get('sources', [])
+        targets = self.manager._get_sources(zone_name, zone_config)
 
-        if not sources:
-            raise ApiManagerException(
-                f'Zone {zone_name} has no sources configured'
-            )
-
-        # Create zone and populate from first source
+        # Create zone and populate from first source (actually targets)
         zone = Zone(zone_name, [])
-        source_name = sources[0]
-        source = self.manager.providers.get(source_name)
-
-        if not source:
-            raise ApiManagerException(f'Source {source_name} not found')
-
-        source.populate(zone, lenient=False)
+        target = targets[0]
+        target.populate(zone, lenient=False)
 
         return zone
 
