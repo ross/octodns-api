@@ -69,7 +69,7 @@ class TestAuth(TestCase):
 
     def test_get_api_keys_with_missing_key_value(self):
         # Test coverage for when a key config has no 'key' field
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with NamedTemporaryFile(mode='w', suffix='.yaml') as f:
             f.write(
                 '''
 api:
@@ -90,9 +90,9 @@ zones:
       - config
 '''
             )
-            config_file = f.name
+            f.flush()
+            test_app = create_app(f.name)
 
-        test_app = create_app(config_file)
         with test_app.app_context():
             keys = _get_api_keys()
             # Should only include the valid key, skip the one without 'key' field
