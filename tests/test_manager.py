@@ -65,27 +65,16 @@ zones:
         self.assertIn('not configured', str(cm.exception))
 
     def test_get_zone_no_targets(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
-providers:
-  yaml:
-    class: octodns.provider.yaml.YamlProvider
-    directory: /tmp
-
-zones:
-  example.com.:
-    sources:
-      - ignored
-'''
-            )
-            config_file = f.name
-
+        config_file = self._get_config_file()
         manager = ApiManager(config_file)
+
+        # Mock the zone config to have an invalid source
+        manager.manager.zones['example.com.'] = {'sources': ['ignored']}
+
         with self.assertRaises(ManagerException) as cm:
             manager.get_zone('example.com.')
 
-        self.assertIn('no targets', str(cm.exception))
+        self.assertIn('unknown source', str(cm.exception))
 
     def test_get_zone_target_not_found(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -110,7 +99,7 @@ zones:
         with self.assertRaises(ManagerException) as cm:
             manager.get_zone('example.com.')
 
-        self.assertIn('unknown target', str(cm.exception))
+        self.assertIn('unknown source', str(cm.exception))
 
     def test_create_or_update_record_no_targets(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -135,7 +124,7 @@ zones:
                 'example.com.', 'test', 'A', {'ttl': 300, 'values': ['1.2.3.4']}
             )
 
-        self.assertIn('no targets', str(cm.exception))
+        self.assertIn('no targets configured', str(cm.exception))
 
     def test_create_or_update_record_target_not_found(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -195,7 +184,7 @@ zones:
         with self.assertRaises(ApiManagerException) as cm:
             manager.delete_record('example.com.', 'test', 'A')
 
-        self.assertIn('no targets', str(cm.exception))
+        self.assertIn('no targets configured', str(cm.exception))
 
     def test_delete_record_target_not_found(self):
         with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -483,3 +472,46 @@ zones:
                 zone = manager.get_zone('dynamic.com.')
                 self.assertEqual(zone.name, 'dynamic.com.')
                 mock_populate.assert_called_once()
+
+    def test_process_config_with_targets(self):
+        # Test that _TargetOnlyManager.process_config copies targets to sources
+        config_file = self._get_config_file()
+        manager = ApiManager(config_file)
+
+        config = {
+            'zones': {
+                'example.com.': {'targets': ['yaml']},
+                'test.com.': {'targets': ['yaml', 'other']},
+            }
+        }
+
+        result = manager.manager.process_config(config)
+
+        # Sources should be copied from targets
+        self.assertEqual(
+            result['zones']['example.com.']['sources'],
+            result['zones']['example.com.']['targets'],
+        )
+        self.assertEqual(
+            result['zones']['test.com.']['sources'],
+            result['zones']['test.com.']['targets'],
+        )
+
+    def test_process_config_without_targets(self):
+        # Test that _TargetOnlyManager.process_config handles zones without targets
+        config_file = self._get_config_file()
+        manager = ApiManager(config_file)
+
+        config = {
+            'zones': {
+                'example.com.': {'sources': ['yaml']},
+                'no-targets.com.': {},
+            }
+        }
+
+        # Should not raise an exception
+        result = manager.manager.process_config(config)
+
+        # Zones without targets should remain unchanged
+        self.assertEqual(result['zones']['example.com.']['sources'], ['yaml'])
+        self.assertNotIn('sources', result['zones']['no-targets.com.'])

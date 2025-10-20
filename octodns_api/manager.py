@@ -4,7 +4,7 @@
 
 from logging import getLogger
 
-from octodns.manager import Manager, ManagerException
+from octodns.manager import Manager
 from octodns.record import Record
 from octodns.zone import Zone
 
@@ -15,24 +15,15 @@ class ApiManagerException(Exception):
 
 class _TargetOnlyManager(Manager):
 
-    # TODO: this is so hacky and ugly it can't be allowed to exist
-    def _get_sources(self, decoded_zone_name, config):
-        modified_config = dict(config)
-        self.log.info(
-            '_get_sources: api, copying targets to sources for zone=%s',
-            decoded_zone_name,
-        )
-        try:
-            modified_config['sources'] = modified_config['targets']
-        except KeyError:
-            raise ManagerException(
-                f'Zone {decoded_zone_name} has no targets configured'
-            )
-        try:
-            return super()._get_sources(decoded_zone_name, modified_config)
-        except ManagerException as e:
-            e.args = (e.args[0].replace('unknown source', 'unknown target'),)
-            raise
+    def process_config(self, config):
+        self.log.info('process_config: copying Zone.targets to Zone.sources')
+        for zone_config in config.get('zones', {}).values():
+            try:
+                zone_config['sources'] = zone_config['targets']
+            except KeyError:
+                pass
+
+        return config
 
 
 class ApiManager:
