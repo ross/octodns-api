@@ -2,6 +2,7 @@
 #
 #
 
+from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
@@ -12,10 +13,10 @@ from octodns_api.manager import ApiManager, ApiManagerException
 
 
 class TestApiManager(TestCase):
-    def _get_config_file(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+    @contextmanager
+    def _get_config_file(self, config_content=None):
+        if config_content is None:
+            config_content = '''
 api:
   keys:
     - name: test
@@ -33,18 +34,20 @@ zones:
     targets:
       - yaml
 '''
-            )
-            return f.name
+        with NamedTemporaryFile(mode='w', suffix='.yaml') as f:
+            f.write(config_content)
+            f.flush()
+            yield f.name
 
     def test_list_zones(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
         zones = manager.list_zones()
         self.assertIn('example.com.', zones)
 
     def test_get_zone_without_trailing_dot(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock the provider populate
         with patch.object(
@@ -56,8 +59,8 @@ zones:
             self.assertEqual(args[0].name, 'example.com.')
 
     def test_get_zone_not_configured(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         with self.assertRaises(ApiManagerException) as cm:
             manager.get_zone('notfound.com.')
@@ -65,8 +68,8 @@ zones:
         self.assertIn('not configured', str(cm.exception))
 
     def test_get_zone_no_targets(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock the zone config to have an invalid source
         manager.manager.zones['example.com.'] = {'sources': ['ignored']}
@@ -77,9 +80,7 @@ zones:
         self.assertIn('unknown source', str(cm.exception))
 
     def test_get_zone_target_not_found(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -92,19 +93,16 @@ zones:
     targets:
       - notfound
 '''
-            )
-            config_file = f.name
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
-        manager = ApiManager(config_file)
         with self.assertRaises(ManagerException) as cm:
             manager.get_zone('example.com.')
 
         self.assertIn('unknown source', str(cm.exception))
 
     def test_create_or_update_record_no_targets(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -115,10 +113,9 @@ zones:
     sources:
       - yaml
 '''
-            )
-            config_file = f.name
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
-        manager = ApiManager(config_file)
         with self.assertRaises(ApiManagerException) as cm:
             manager.create_or_update_record(
                 'example.com.', 'test', 'A', {'ttl': 300, 'values': ['1.2.3.4']}
@@ -127,9 +124,7 @@ zones:
         self.assertIn('no targets configured', str(cm.exception))
 
     def test_create_or_update_record_target_not_found(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -142,10 +137,8 @@ zones:
     targets:
       - notfound
 '''
-            )
-            config_file = f.name
-
-        manager = ApiManager(config_file)
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
         # Mock get_zone to avoid needing real zone data
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -164,9 +157,7 @@ zones:
             self.assertIn('not found', str(cm.exception))
 
     def test_delete_record_no_targets(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -177,19 +168,16 @@ zones:
     sources:
       - yaml
 '''
-            )
-            config_file = f.name
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
-        manager = ApiManager(config_file)
         with self.assertRaises(ApiManagerException) as cm:
             manager.delete_record('example.com.', 'test', 'A')
 
         self.assertIn('no targets configured', str(cm.exception))
 
     def test_delete_record_target_not_found(self):
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -202,10 +190,8 @@ zones:
     targets:
       - notfound
 '''
-            )
-            config_file = f.name
-
-        manager = ApiManager(config_file)
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
         # Mock get_zone to return a zone with no matching record
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -218,8 +204,8 @@ zones:
             self.assertFalse(result)
 
     def test_create_or_update_record_not_configured(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         with self.assertRaises(ApiManagerException) as cm:
             manager.create_or_update_record(
@@ -232,8 +218,8 @@ zones:
         self.assertIn('not configured', str(cm.exception))
 
     def test_delete_record_not_configured(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         with self.assertRaises(ApiManagerException) as cm:
             manager.delete_record('notfound.com.', 'test', 'A')
@@ -241,8 +227,8 @@ zones:
         self.assertIn('not configured', str(cm.exception))
 
     def test_create_or_update_without_trailing_dot(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock to test without trailing dot handling
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -265,8 +251,8 @@ zones:
                 self.assertFalse(changed)
 
     def test_delete_record_without_trailing_dot(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock to test without trailing dot handling
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -279,8 +265,8 @@ zones:
             self.assertFalse(result)
 
     def test_sync_zone_without_trailing_dot(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         with patch.object(manager.manager, 'sync') as mock_sync:
             mock_sync.return_value = 0
@@ -291,8 +277,8 @@ zones:
             self.assertTrue(result['dry_run'])
 
     def test_create_or_update_record_with_plan(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock to test when plan returns changes
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -319,8 +305,8 @@ zones:
                     mock_apply.assert_called_once()
 
     def test_delete_record_with_plan(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock to test when plan returns changes
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -347,9 +333,7 @@ zones:
 
     def test_delete_record_target_really_not_found(self):
         # Test when target provider doesn't exist
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -362,10 +346,8 @@ zones:
     targets:
       - notfound
 '''
-            )
-            config_file = f.name
-
-        manager = ApiManager(config_file)
+        with self._get_config_file(config_content) as config_file:
+            manager = ApiManager(config_file)
 
         # Mock get_zone to return a zone with a record
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -383,8 +365,8 @@ zones:
             self.assertIn('not found', str(cm.exception))
 
     def test_delete_record_no_plan(self):
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         # Mock to test when plan returns None (no changes)
         with patch.object(manager, 'get_zone') as mock_get_zone:
@@ -407,9 +389,7 @@ zones:
 
     def test_dynamic_zone_expansion(self):
         # Test that dynamic zones (wildcards) are expanded during init
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -422,16 +402,14 @@ zones:
     targets:
       - yaml
 '''
-            )
-            config_file = f.name
-
         # Mock list_zones at the class level before ApiManager is created
         with patch(
             'octodns.provider.yaml.YamlProvider.list_zones'
         ) as mock_list_zones:
             mock_list_zones.return_value = ['example.com.', 'test.com.']
 
-            manager = ApiManager(config_file)
+            with self._get_config_file(config_content) as config_file:
+                manager = ApiManager(config_file)
 
             zones = manager.list_zones()
             self.assertIn('example.com.', zones)
@@ -440,9 +418,7 @@ zones:
 
     def test_dynamic_zone_get_zone(self):
         # Test that zones expanded from wildcards can be accessed
-        with NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(
-                '''
+        config_content = '''
 providers:
   yaml:
     class: octodns.provider.yaml.YamlProvider
@@ -455,15 +431,14 @@ zones:
     targets:
       - yaml
 '''
-            )
-            config_file = f.name
-
         # Mock list_zones to return zones
         with patch(
             'octodns.provider.yaml.YamlProvider.list_zones'
         ) as mock_list_zones:
             mock_list_zones.return_value = ['dynamic.com.']
-            manager = ApiManager(config_file)
+
+            with self._get_config_file(config_content) as config_file:
+                manager = ApiManager(config_file)
 
             # Mock populate to avoid needing real zone data
             with patch.object(
@@ -475,8 +450,8 @@ zones:
 
     def test_process_config_with_targets(self):
         # Test that _TargetOnlyManager.process_config copies targets to sources
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         config = {
             'zones': {
@@ -499,8 +474,8 @@ zones:
 
     def test_process_config_without_targets(self):
         # Test that _TargetOnlyManager.process_config handles zones without targets
-        config_file = self._get_config_file()
-        manager = ApiManager(config_file)
+        with self._get_config_file() as config_file:
+            manager = ApiManager(config_file)
 
         config = {
             'zones': {
